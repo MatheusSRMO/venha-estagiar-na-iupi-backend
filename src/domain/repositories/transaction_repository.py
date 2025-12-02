@@ -54,16 +54,20 @@ class TransactionRepositoryInterface(ABC):
         self,
         description: Optional[str] = None,
         transaction_type: Optional[str] = None,
-    ) -> List[Transaction]:
+        page: int = 1,
+        size: int = 10,
+    ) -> tuple[List[Transaction], int]:
         """
-        Retrieves all transactions, optionally filtered.
+        Retrieves all transactions, optionally filtered, with pagination.
         
         Args:
             description: Optional filter for description (case-insensitive partial match).
             transaction_type: Optional filter for transaction type ('income' or 'expense').
+            page: Page number (1-indexed).
+            size: Number of items per page.
             
         Returns:
-            List[Transaction]: List of transactions matching the filters.
+            tuple[List[Transaction], int]: Tuple of transactions matching the filters and total count.
         """
         pass
 
