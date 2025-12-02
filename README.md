@@ -1,103 +1,420 @@
-# 📖 Desafio de Estágio Backend (API REST) - IUPI
+# Expense Control API
 
-Olá, candidato\! Que bom ter você aqui. Este desafio foi criado para avaliarmos seus conhecimentos fundamentais na construção de APIs REST, modelagem de dados e boas práticas de desenvolvimento backend.
+API REST para gerenciamento de transações financeiras, desenvolvida como solução para o desafio de estágio backend da IUPI.
 
-## Stack Tecnológica
+## Sumário
 
-  * **Nossa Stack (Preferencial):** Na IUPI, nossa stack principal de backend é **Python** com **Django** e **Django REST Framework (DRF)**. Gostaríamos muito de ver seu desafio construído com essas ferramentas.
-  * **Outras Stacks:** Se você ainda não domina Django, mas é fera em outra stack (Node.js, Flask/FastAPI, Spring Boot, etc.), sinta-se à vontade para usá-la. Valorizamos bons fundamentos de programação acima de tudo.
-  * **Banco de Dados:** Recomendamos o uso de **SQLite**. É um banco de dados leve, baseado em arquivo, que não exige um servidor separado e foca na lógica da API.
+- [Visão Geral](#visão-geral)
+- [Arquitetura](#arquitetura)
+- [Tecnologias](#tecnologias)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Instalação](#instalação)
+- [Endpoints da API](#endpoints-da-api)
+- [Exemplos de Uso](#exemplos-de-uso)
+- [Testes](#testes)
 
------
+---
 
-## 🎯 O Desafio
+## Visão Geral
 
-Sua missão é construir a API REST para o nosso "Controle de Despesas". Esta API será a fonte da verdade para as transações financeiras e deve permitir que um frontend crie, liste, edite e delete essas transações.
+Esta API foi desenvolvida para gerenciar transações financeiras pessoais, permitindo o controle de receitas (*income*) e despesas (*expense*). O sistema oferece:
 
-### O Modelo de Dados: `Transaction`
+- Operações CRUD completas para transações
+- Filtros por descrição e tipo de transação
+- Paginação de resultados
+- Endpoint de resumo financeiro com agregação de dados
+- Validações de entrada robustas
 
-O objeto principal da sua API deve ter a seguinte estrutura:
+---
 
-  * `id` (string ou número): Identificador único (gerado automaticamente).
-  * `description` (string): Descrição da transação (ex: "Salário", "Aluguel").
-  * `amount` (número): O valor da transação. **Deve ser sempre um número positivo.**
-  * `type` (string): O tipo de transação. Deve ser `income` (entrada) ou `expense` (saída).
-  * `date` (string ou data): A data da transação (formato `YYYY-MM-DD`).
+## Arquitetura
 
------
+O projeto foi desenvolvido seguindo os princípios da **Clean Architecture**, garantindo separação de responsabilidades, testabilidade e manutenibilidade do código.
 
-## ✅ Requisitos Funcionais (Endpoints)
+### Diagrama da Arquitetura
 
-Sua API deve expor os seguintes endpoints (o CRUD completo).
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        PRESENTATION LAYER                           │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                    API REST (Django REST Framework)           │  │
+│  │  ┌─────────────┐  ┌──────────────┐  ┌─────────────────────┐   │  │
+│  │  │    Views    │  │  Serializers │  │        URLs         │   │  │
+│  │  └──────┬──────┘  └──────────────┘  └─────────────────────┘   │  │
+│  └─────────┼─────────────────────────────────────────────────────┘  │
+└────────────┼────────────────────────────────────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        APPLICATION LAYER                            │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                         Use Cases                             │  │
+│  │  ┌────────────────┐  ┌─────────────────┐  ┌───────────────┐   │  │
+│  │  │ CreateTransaction │ │ ListTransactions │ │  GetSummary   │   │  │
+│  │  └────────────────┘  └─────────────────┘  └───────────────┘   │  │
+│  │  ┌────────────────┐  ┌─────────────────┐  ┌───────────────┐   │  │
+│  │  │ GetTransaction │  │ UpdateTransaction│ │DeleteTransaction│  │  │
+│  │  └────────────────┘  └─────────────────┘  └───────────────┘   │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                           DTOs                                │  │
+│  │  ┌──────────────────┐  ┌──────────────────┐                   │  │
+│  │  │ CreateTransactionDTO│ │TransactionResponseDTO│              │  │
+│  │  └──────────────────┘  └──────────────────┘                   │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                          DOMAIN LAYER                               │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                         Entities                              │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Transaction (id, description, amount, type, date)      │  │  │
+│  │  │  TransactionType (INCOME, EXPENSE)                      │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                    Repository Interfaces                      │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │           TransactionRepositoryInterface                │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      INFRASTRUCTURE LAYER                           │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                    Django Implementation                      │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  TransactionModel (Django ORM)                          │  │  │
+│  │  │  DjangoTransactionRepository                            │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                              │                                      │
+│                              ▼                                      │
+│                    ┌─────────────────┐                              │
+│                    │     SQLite      │                              │
+│                    └─────────────────┘                              │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-### 1\. Criar Transação
+### Camadas da Arquitetura
 
-  * **Endpoint:** `POST /transactions/`
-  * **Request Body (JSON):** Um objeto contendo `description`, `amount`, `type`, e `date`.
-  * **Validação (Obrigatório):**
-      * Todos os campos são obrigatórios.
-      * `amount` deve ser um número maior que zero.
-      * `type` deve ser obrigatoriamente `income` ou `expense`.
-      * Se a validação falhar, a API deve retornar um status `400 Bad Request` com uma mensagem de erro clara.
-  * **Resposta (Sucesso):**
-      * Status `201 Created`
-      * Body: O objeto da transação recém-criada, incluindo seu `id`.
+#### Presentation Layer
 
-### 2\. Listar Transações (com Filtros)
+Responsável pela interface com o mundo externo através da API REST.
 
-  * **Endpoint:** `GET /transactions/`
-  * **Query Params (Filtros):**
-      * `?description=...`: Filtrar por descrição (busca parcial, "case-insensitive". Ex: `desc=sal` deve encontrar "Salário").
-      * `?type=...`: Filtrar por tipo (ex: `?type=income` ou `?type=expense`).
-      * *Os filtros devem ser combináveis.*
-  * Exemplo de chamada (Query Params completo):
-      * Se o candidato quiser encontrar todas as transações do tipo "saída" (expense) que contenham a palavra "café" na descrição, a URL completa da requisição GET ficaria assim:
-        `GET http://localhost:8000/transactions/?type=expense&description=cafe`
-  * **Resposta (Sucesso):**
-      * Status `200 OK`
-      * Body: Um array com as transações que correspondem aos filtros.
+| Componente | Descrição |
+|------------|-----------|
+| **Views** | Controladores que recebem requisições HTTP e delegam para os Use Cases |
+| **Serializers** | Validação e serialização de dados de entrada/saída |
+| **URLs** | Roteamento de endpoints da API |
 
+#### Application Layer
 
-### 3\. Obter Transação Específica
+Contém a lógica de orquestração da aplicação.
 
-  * **Endpoint:** `GET /transactions/:id/`
-  * **Validação:**
-      * Se a transação com o `id` informado não existir, retorne um status `404 Not Found`.
-  * **Resposta (Sucesso):**
-      * Status `200 OK`
-      * Body: O objeto único da transação.
+| Componente | Descrição |
+|------------|-----------|
+| **Use Cases** | Casos de uso que implementam as regras de negócio da aplicação |
+| **DTOs** | Objetos de transferência de dados entre camadas |
 
-### 4\. Atualizar Transação
+#### Domain Layer
 
-  * **Endpoint:** `PUT /transactions/:id/` (ou `PATCH`)
-  * **Request Body (JSON):** Os campos que devem ser atualizados.
-  * **Validação:** Aplicam-se as mesmas regras da criação.
-  * **Resposta (Sucesso):**
-      * Status `200 OK`
-      * Body: O objeto da transação *atualizado*.
+O núcleo da aplicação, contendo as regras de negócio puras.
 
-### 5\. Deletar Transação
+| Componente | Descrição |
+|------------|-----------|
+| **Entities** | Entidades de domínio com regras de validação internas |
+| **Repository Interfaces** | Contratos abstratos para persistência de dados |
 
-  * **Endpoint:** `DELETE /transactions/:id/`
-  * **Resposta (Sucesso):**
-      * Status `2_4 No Content`
-      * Body: Vazio.
+#### Infrastructure Layer
 
-### 6\. Obter Resumo (Desafio de Lógica)
+Implementações concretas de serviços externos e frameworks.
 
-  * **Endpoint:** `GET /summary/`
-  * **Lógica:** Este é um endpoint customizado que exigirá lógica de agregação de dados.
-  * **Resposta (Sucesso):**
-      * Status `200 OK`
-      * Body (JSON):
-    <!-- end list -->
-    ```json
-    {
-        "total_income": "15000.00",  // Soma de todos os 'income'
-        "total_expense": "4500.00", // Soma de todos os 'expense'
-        "net_balance": "10500.00"   // (income - expense)
-    }
-    ```
+| Componente | Descrição |
+|------------|-----------|
+| **Models** | Modelos Django ORM para persistência |
+| **Repositories** | Implementação concreta do repositório usando Django ORM |
+
+### Benefícios da Arquitetura
+
+| Benefício | Descrição |
+|-----------|-----------|
+| **Independência de Framework** | O domínio não possui dependências do Django |
+| **Testabilidade** | Cada camada pode ser testada isoladamente |
+| **Manutenibilidade** | Alterações em uma camada não afetam as demais |
+| **Flexibilidade** | Permite substituição de implementações sem impacto no domínio |
+
+---
+
+## Tecnologias
+
+| Tecnologia | Versão | Descrição |
+|------------|--------|-----------|
+| Python | 3.10+ | Linguagem de programação |
+| Django | 5.0+ | Framework web |
+| Django REST Framework | 3.14+ | Toolkit para construção de APIs REST |
+| SQLite | - | Sistema de gerenciamento de banco de dados |
+| pytest | 7.0+ | Framework de testes |
+
+---
+
+## Estrutura do Projeto
+
+```
+iupi/
+├── config/                          # Configurações do Django
+│   ├── settings.py                  # Configurações principais
+│   ├── urls.py                      # URLs raiz do projeto
+│   └── wsgi.py                      # Configuração WSGI
+│
+├── src/                             # Código fonte da aplicação
+│   ├── domain/                      # CAMADA DE DOMÍNIO
+│   │   ├── entities/
+│   │   │   └── transaction.py       # Entidade Transaction + TransactionType
+│   │   └── repositories/
+│   │       └── transaction_repository.py  # Interface do repositório
+│   │
+│   ├── application/                 # CAMADA DE APLICAÇÃO
+│   │   ├── dtos/
+│   │   │   └── transaction_dto.py   # DTOs de transação
+│   │   └── use_cases/
+│   │       ├── create_transaction.py
+│   │       ├── get_transaction.py
+│   │       ├── list_transactions.py
+│   │       ├── update_transaction.py
+│   │       ├── delete_transaction.py
+│   │       └── get_summary.py
+│   │
+│   ├── infrastructure/              # CAMADA DE INFRAESTRUTURA
+│   │   └── django_app/
+│   │       ├── models/
+│   │       │   └── transaction_model.py
+│   │       ├── repositories/
+│   │       │   └── django_transaction_repository.py
+│   │       └── migrations/
+│   │
+│   └── presentation/                # CAMADA DE APRESENTAÇÃO
+│       └── api/
+│           └── v1/
+│               ├── views/
+│               │   └── transaction_views.py
+│               ├── serializers/
+│               │   └── transaction_serializer.py
+│               └── urls/
+│                   └── transaction_urls.py
+│
+├── manage.py                        # CLI do Django
+├── requirements.txt                 # Dependências Python
+└── db.sqlite3                       # Banco de dados SQLite
+```
+
+---
+
+## Instalação
+
+### Pré-requisitos
+
+- Python 3.10 ou superior
+- pip (gerenciador de pacotes Python)
+
+### Configuração do Ambiente
+
+1. **Clone o repositório**
+```bash
+git clone https://github.com/MatheusSRMO/venha-estagiar-na-iupi-backend.git
+cd venha-estagiar-na-iupi-backend
+```
+
+2. **Crie e ative um ambiente virtual**
+```bash
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate     # Windows
+```
+
+3. **Instale as dependências**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Execute as migrações do banco de dados**
+```bash
+python manage.py migrate
+```
+
+5. **Inicie o servidor de desenvolvimento**
+```bash
+python manage.py runserver
+```
+
+A API estará disponível em `http://localhost:8000/api/v1/`
+
+---
+
+## Endpoints da API
+
+### Base URL
+```
+http://localhost:8000/api/v1/
+```
+
+### Transações
+
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| `POST` | `/transactions/` | Criar nova transação |
+| `GET` | `/transactions/` | Listar transações (com filtros opcionais) |
+| `GET` | `/transactions/{id}/` | Obter transação por ID |
+| `PUT` | `/transactions/{id}/` | Atualização completa de transação |
+| `PATCH` | `/transactions/{id}/` | Atualização parcial de transação |
+| `DELETE` | `/transactions/{id}/` | Remover transação |
+
+### Resumo Financeiro
+
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| `GET` | `/summary/` | Obter resumo financeiro agregado |
+
+### Modelo de Dados: Transaction
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | UUID | Identificador único (gerado automaticamente) |
+| `description` | string | Descrição da transação |
+| `amount` | decimal | Valor da transação (deve ser positivo) |
+| `type` | string | Tipo da transação: `income` ou `expense` |
+| `date` | date | Data da transação no formato `YYYY-MM-DD` |
+
+### Parâmetros de Query (Listagem)
+
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `description` | string | Filtro por descrição (busca parcial, case-insensitive) |
+| `type` | string | Filtro por tipo (`income` ou `expense`) |
+| `page` | integer | Número da página para paginação |
+| `size` | integer | Quantidade de itens por página |
+
+---
+
+## Exemplos de Uso
+
+### Criar Transação
+
+```bash
+curl -X POST http://localhost:8000/api/v1/transactions/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Salário",
+    "amount": 5000.00,
+    "type": "income",
+    "date": "2025-01-15"
+  }'
+```
+
+**Resposta (201 Created):**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "description": "Salário",
+  "amount": "5000.00",
+  "type": "income",
+  "date": "2025-01-15"
+}
+```
+
+### Listar Transações
+
+```bash
+# Listar todas as transações
+curl http://localhost:8000/api/v1/transactions/
+
+# Aplicar filtro por tipo
+curl http://localhost:8000/api/v1/transactions/?type=expense
+
+# Aplicar filtro por descrição
+curl http://localhost:8000/api/v1/transactions/?description=sal
+
+# Combinar múltiplos filtros
+curl http://localhost:8000/api/v1/transactions/?type=expense&description=cafe
+
+# Paginação
+curl http://localhost:8000/api/v1/transactions/?page=1&size=10
+```
+
+### Obter Transação por ID
+
+```bash
+curl http://localhost:8000/api/v1/transactions/550e8400-e29b-41d4-a716-446655440000/
+```
+
+### Atualizar Transação
+
+```bash
+curl -X PUT http://localhost:8000/api/v1/transactions/550e8400-e29b-41d4-a716-446655440000/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Salário atualizado",
+    "amount": 5500.00,
+    "type": "income",
+    "date": "2025-01-15"
+  }'
+```
+
+### Remover Transação
+
+```bash
+curl -X DELETE http://localhost:8000/api/v1/transactions/550e8400-e29b-41d4-a716-446655440000/
+```
+
+### Obter Resumo Financeiro
+
+```bash
+curl http://localhost:8000/api/v1/summary/
+```
+
+**Resposta (200 OK):**
+```json
+{
+  "total_income": "15000.00",
+  "total_expense": "4500.00",
+  "net_balance": "10500.00"
+}
+```
+
+---
+
+## Testes
+
+Para executar a suíte de testes:
+
+```bash
+pytest
+```
+
+Para executar com cobertura de código:
+
+```bash
+pytest --cov=src
+```
+
+---
+
+## Autor
+
+**Matheus Souza Ribeiro**
+
+GitHub: [MatheusSRMO](https://github.com/MatheusSRMO)
+
+---
+
+## Licença
+
+Este projeto foi desenvolvido como parte do processo seletivo para estágio na IUPI.
 
 -----
 ## 💎 Requisitos de Qualidade de Código
