@@ -33,71 +33,64 @@ O projeto foi desenvolvido seguindo os princípios da **Clean Architecture**, ga
 
 ### Diagrama da Arquitetura
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        PRESENTATION LAYER                           │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                    API REST (Django REST Framework)           │  │
-│  │  ┌─────────────┐  ┌──────────────┐  ┌─────────────────────┐   │  │
-│  │  │    Views    │  │  Serializers │  │        URLs         │   │  │
-│  │  └──────┬──────┘  └──────────────┘  └─────────────────────┘   │  │
-│  └─────────┼─────────────────────────────────────────────────────┘  │
-└────────────┼────────────────────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                        APPLICATION LAYER                            │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                         Use Cases                             │  │
-│  │  ┌────────────────┐  ┌─────────────────┐  ┌───────────────┐   │  │
-│  │  │ CreateTransaction │ │ ListTransactions │ │  GetSummary   │   │  │
-│  │  └────────────────┘  └─────────────────┘  └───────────────┘   │  │
-│  │  ┌────────────────┐  ┌─────────────────┐  ┌───────────────┐   │  │
-│  │  │ GetTransaction │  │ UpdateTransaction│ │DeleteTransaction│  │  │
-│  │  └────────────────┘  └─────────────────┘  └───────────────┘   │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                           DTOs                                │  │
-│  │  ┌──────────────────┐  ┌──────────────────┐                   │  │
-│  │  │ CreateTransactionDTO│ │TransactionResponseDTO│              │  │
-│  │  └──────────────────┘  └──────────────────┘                   │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                          DOMAIN LAYER                               │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                         Entities                              │  │
-│  │  ┌─────────────────────────────────────────────────────────┐  │  │
-│  │  │  Transaction (id, description, amount, type, date)      │  │  │
-│  │  │  TransactionType (INCOME, EXPENSE)                      │  │  │
-│  │  └─────────────────────────────────────────────────────────┘  │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                    Repository Interfaces                      │  │
-│  │  ┌─────────────────────────────────────────────────────────┐  │  │
-│  │  │           TransactionRepositoryInterface                │  │  │
-│  │  └─────────────────────────────────────────────────────────┘  │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                      INFRASTRUCTURE LAYER                           │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                    Django Implementation                      │  │
-│  │  ┌─────────────────────────────────────────────────────────┐  │  │
-│  │  │  TransactionModel (Django ORM)                          │  │  │
-│  │  │  DjangoTransactionRepository                            │  │  │
-│  │  └─────────────────────────────────────────────────────────┘  │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│                              │                                      │
-│                              ▼                                      │
-│                    ┌─────────────────┐                              │
-│                    │     SQLite      │                              │
-│                    └─────────────────┘                              │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    %% Estilos
+    classDef presentation fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:black;
+    classDef application fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:black;
+    classDef domain fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px,color:black;
+    classDef infra fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:black;
+    classDef database fill:#eceff1,stroke:#263238,stroke-width:2px,color:black;
+
+    %% Atores
+    Client((Cliente / Frontend))
+
+    %% Camadas com aspas nos títulos para evitar erro de parse
+    subgraph Presentation ["🟦 Presentation Layer (Django REST)"]
+        direction TB
+        URLs[URLs / Rotas]
+        Views[Views / Controllers]
+        Serializers[Serializers]
+    end
+
+    subgraph Application ["🟧 Application Layer (Regras da Aplicação)"]
+        direction TB
+        subgraph UseCases ["Use Cases"]
+            UC_Create[Create Transaction]
+            UC_Read[List & Get]
+            UC_Summary[Get Summary]
+        end
+    end
+
+    subgraph Domain ["🟩 Domain Layer (Núcleo)"]
+        direction TB
+        Entity[Entidade Transaction]
+        RepoInterface[Repository Interface]
+    end
+
+    subgraph Infrastructure ["🟪 Infrastructure Layer"]
+        direction TB
+        RepoImpl[Django Repository Impl]
+        Models[Django Models]
+    end
+
+    DB[(SQLite)]
+
+    %% Conexões
+    Client --> URLs --> Views
+    Views <--> Serializers
+    Views --> UseCases
+    UseCases --> Entity
+    UseCases --> RepoInterface
+    RepoImpl -.->|Implementa| RepoInterface
+    RepoImpl --> Models <--> DB
+
+    %% Aplicação dos estilos
+    class URLs,Views,Serializers presentation;
+    class UseCases,UC_Create,UC_Read,UC_Summary application;
+    class Entity,RepoInterface domain;
+    class RepoImpl,Models infra;
+    class DB database;
 ```
 
 ### Camadas da Arquitetura
