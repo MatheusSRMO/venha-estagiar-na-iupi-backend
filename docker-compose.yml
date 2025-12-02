@@ -1,0 +1,40 @@
+# Docker Compose para desenvolvimento e produção local
+# Expense Control API
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: iupi-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Volume para desenvolvimento (código fonte)
+      - .:/app
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DEBUG=True
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/transactions/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Serviço para execução de testes
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: iupi-test
+    volumes:
+      - .:/app
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+    command: ["python", "-m", "pytest", "-v"]
+    profiles:
+      - testing

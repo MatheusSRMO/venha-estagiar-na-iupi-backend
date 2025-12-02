@@ -154,12 +154,14 @@ Implementações concretas de serviços externos e frameworks.
 
 | Tecnologia | Versão | Descrição |
 |------------|--------|-----------|
-| Python | 3.10+ | Linguagem de programação |
+| Python | 3.12 | Linguagem de programação |
 | Django | 5.0+ | Framework web |
 | Django REST Framework | 3.14+ | Toolkit para construção de APIs REST |
 | SQLite | - | Sistema de gerenciamento de banco de dados |
 | pytest | 7.0+ | Framework de testes |
 | pytest-django | 4.5+ | Plugin pytest para integração com Django |
+| Docker | 20.10+ | Containerização da aplicação |
+| Docker Compose | 2.0+ | Orquestração de containers |
 
 ---
 
@@ -220,6 +222,8 @@ iupi/
 ├── manage.py                        # CLI do Django
 ├── pytest.ini                       # Configuração do pytest
 ├── requirements.txt                 # Dependências Python
+├── Dockerfile                       # Configuração Docker
+├── docker-compose.yml               # Orquestração de containers
 └── db.sqlite3                       # Banco de dados SQLite
 ```
 
@@ -227,12 +231,61 @@ iupi/
 
 ## Instalação
 
-### Pré-requisitos
+### Opção 1: Docker (Recomendado)
+
+#### Pré-requisitos
+- Docker 20.10+
+- Docker Compose 2.0+
+
+#### Execução com Docker
+
+1. **Clone o repositório**
+```bash
+git clone https://github.com/MatheusSRMO/venha-estagiar-na-iupi-backend.git
+cd venha-estagiar-na-iupi-backend
+```
+
+2. **Construa e inicie os containers**
+```bash
+docker-compose up --build
+```
+
+3. **Execute as migrações (em outro terminal)**
+```bash
+docker-compose exec api python manage.py migrate
+```
+
+A API estará disponível em `http://localhost:8000/api/v1/`
+
+#### Comandos Docker Úteis
+
+```bash
+# Iniciar em background
+docker-compose up -d
+
+# Parar os containers
+docker-compose down
+
+# Ver logs
+docker-compose logs -f api
+
+# Executar testes
+docker-compose --profile testing run --rm test
+
+# Acessar shell do container
+docker-compose exec api sh
+```
+
+---
+
+### Opção 2: Ambiente Local
+
+#### Pré-requisitos
 
 - Python 3.10 ou superior
 - pip (gerenciador de pacotes Python)
 
-### Configuração do Ambiente
+#### Configuração do Ambiente
 
 1. **Clone o repositório**
 ```bash
