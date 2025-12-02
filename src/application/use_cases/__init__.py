@@ -3,6 +3,7 @@ from .get_transaction import GetTransactionUseCase
 from .list_transactions import ListTransactionsUseCase
 from .update_transaction import UpdateTransactionUseCase
 from .delete_transaction import DeleteTransactionUseCase
+from .get_summary import GetSummaryUseCase
 
 __all__ = [
     'CreateTransactionUseCase',
@@ -10,4 +11,5 @@ __all__ = [
     'ListTransactionsUseCase',
     'UpdateTransactionUseCase',
     'DeleteTransactionUseCase',
+    'GetSummaryUseCase',
 ]
