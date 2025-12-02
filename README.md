@@ -159,6 +159,7 @@ Implementações concretas de serviços externos e frameworks.
 | Django REST Framework | 3.14+ | Toolkit para construção de APIs REST |
 | SQLite | - | Sistema de gerenciamento de banco de dados |
 | pytest | 7.0+ | Framework de testes |
+| pytest-django | 4.5+ | Plugin pytest para integração com Django |
 
 ---
 
@@ -207,7 +208,17 @@ iupi/
 │               └── urls/
 │                   └── transaction_urls.py
 │
+├── tests/                           # TESTES AUTOMATIZADOS
+│   ├── conftest.py                  # Fixtures compartilhadas
+│   ├── domain/
+│   │   └── test_transaction_entity.py
+│   ├── application/
+│   │   └── test_use_cases.py
+│   └── api/
+│       └── test_transaction_endpoints.py
+│
 ├── manage.py                        # CLI do Django
+├── pytest.ini                       # Configuração do pytest
 ├── requirements.txt                 # Dependências Python
 └── db.sqlite3                       # Banco de dados SQLite
 ```
@@ -390,17 +401,78 @@ curl http://localhost:8000/api/v1/summary/
 
 ## Testes
 
-Para executar a suíte de testes:
+O projeto possui uma suíte completa de testes automatizados utilizando pytest, cobrindo todas as camadas da arquitetura.
+
+### Estrutura de Testes
+
+```
+tests/
+├── conftest.py                      # Fixtures compartilhadas
+├── domain/
+│   └── test_transaction_entity.py   # Testes da entidade Transaction
+├── application/
+│   └── test_use_cases.py            # Testes dos Use Cases
+└── api/
+    └── test_transaction_endpoints.py # Testes de integração da API
+```
+
+### Cobertura de Testes
+
+| Camada | Testes | Descrição |
+|--------|--------|-----------|
+| Domain | 16 | Validação de entidades, regras de negócio e tipos |
+| Application | 18 | Casos de uso com mocks do repositório |
+| API | 33 | Integração completa dos endpoints REST |
+| **Total** | **67** | - |
+
+### Executando os Testes
 
 ```bash
+# Executar todos os testes
 pytest
-```
 
-Para executar com cobertura de código:
+# Executar com output detalhado
+pytest -v
 
-```bash
+# Executar testes de uma camada específica
+pytest tests/domain/
+pytest tests/application/
+pytest tests/api/
+
+# Executar com cobertura de código
 pytest --cov=src
+
+# Gerar relatório HTML de cobertura
+pytest --cov=src --cov-report=html
 ```
+
+### Tipos de Testes
+
+#### Testes de Domínio
+Validam as regras de negócio da entidade Transaction:
+- Criação de transações válidas (income/expense)
+- Validação de campos obrigatórios
+- Rejeição de valores inválidos (amount <= 0, description vazia)
+- Conversão de tipos (TransactionType)
+
+#### Testes de Aplicação
+Testam os Use Cases isoladamente com mocks:
+- CreateTransactionUseCase
+- GetTransactionUseCase
+- ListTransactionsUseCase (com filtros e paginação)
+- UpdateTransactionUseCase
+- DeleteTransactionUseCase
+- GetSummaryUseCase
+
+#### Testes de API
+Testes de integração end-to-end:
+- Criação de transações via POST
+- Listagem com filtros e paginação
+- Busca por ID
+- Atualização completa (PUT) e parcial (PATCH)
+- Remoção de transações
+- Resumo financeiro
+- Validação de erros e status codes
 
 ---
 
